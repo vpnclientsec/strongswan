@@ -1018,6 +1018,37 @@ static void process_payloads(private_child_create_t *this, message_t *message)
 	enumerator->destroy(enumerator);
 }
 
+/**
+ * Check if we should defer the creation of this CHILD_SA until after the
+ * IKE_SA has been established childless.
+ */
+static status_t defer_child_sa(private_child_create_t *this)
+{
+	ike_cfg_t *ike_cfg;
+
+	ike_cfg = this->ike_sa->get_ike_cfg(this->ike_sa);
+
+	if (this->ike_sa->supports_extension(this->ike_sa, EXT_IKE_CHILDLESS))
+	{
+		switch (ike_cfg->childless(ike_cfg))
+		{
+			case CHILDLESS_PREFER:
+			case CHILDLESS_FORCE:
+				return NEED_MORE;
+			case CHILDLESS_ACCEPT:
+			case CHILDLESS_NEVER:
+			default:
+				break;
+		}
+	}
+	else if (ike_cfg->childless(ike_cfg) == CHILDLESS_FORCE)
+	{
+		DBG1(DBG_IKE, "peer does not support childless IKE_SA initiation");
+		return DESTROY_ME;
+	}
+	return NOT_SUPPORTED;
+}
+
 METHOD(task_t, build_i, status_t,
 	private_child_create_t *this, message_t *message)
 {
@@ -1047,6 +1078,20 @@ METHOD(task_t, build_i, status_t,
 			{
 				/* send only in the first request, not in subsequent rounds */
 				return NEED_MORE;
+			}
+			switch (defer_child_sa(this))
+			{
+				case DESTROY_ME:
+					/* config mismatch */
+					return DESTROY_ME;
+				case NEED_MORE:
+					/* defer until after IKE_SA has been established */
+					chunk_free(&this->my_nonce);
+					return NEED_MORE;
+				case NOT_SUPPORTED:
+				default:
+					/* just continue to establish the CHILD_SA */
+					break;
 			}
 			break;
 		default:
@@ -1293,6 +1338,35 @@ static child_cfg_t* select_child_cfg(private_child_create_t *this)
 	return child_cfg;
 }
 
+/**
+ * Check how to handle a possibly childless IKE_SA
+ */
+static status_t handle_childless(private_child_create_t *this)
+{
+	ike_cfg_t *ike_cfg;
+
+	ike_cfg = this->ike_sa->get_ike_cfg(this->ike_sa);
+
+	if (!this->proposals && !this->tsi && !this->tsr)
+	{	/* looks like a childless IKE_SA, check if we accept it */
+		if (ike_cfg->childless(ike_cfg) == CHILDLESS_NEVER)
+		{
+			/* we don't accept childless initiation */
+			DBG1(DBG_IKE, "peer tried to initiate a childless IKE_SA");
+			return INVALID_STATE;
+		}
+		return SUCCESS;
+	}
+
+	/* the peer apparently wants to create a regular IKE_SA */
+	if (ike_cfg->childless(ike_cfg) == CHILDLESS_FORCE)
+	{	/* reject it if we only accept childless initiation */
+		DBG1(DBG_IKE, "peer did not initiate a childless IKE_SA");
+		return INVALID_STATE;
+	}
+	return NOT_SUPPORTED;
+}
+
 METHOD(task_t, build_r, status_t,
 	private_child_create_t *this, message_t *message)
 {
@@ -1328,6 +1402,20 @@ METHOD(task_t, build_r, status_t,
 			if (this->ike_sa->has_condition(this->ike_sa, COND_REDIRECTED))
 			{	/* no CHILD_SA is created for redirected SAs */
 				return SUCCESS;
+			}
+			switch (handle_childless(this))
+			{
+				case SUCCESS:
+					/* no CHILD_SA built */
+					return SUCCESS;
+				case INVALID_STATE:
+					message->add_notify(message, FALSE, INVALID_SYNTAX,
+										chunk_empty);
+					return FAILED;
+				case NOT_SUPPORTED:
+				default:
+					/* continue with regular initiation */
+					break;
 			}
 			ike_auth = TRUE;
 		default:
@@ -1513,6 +1601,17 @@ METHOD(task_t, process_i, status_t,
 			if (this->ike_sa->get_state(this->ike_sa) != IKE_ESTABLISHED)
 			{	/* wait until all authentication round completed */
 				return NEED_MORE;
+			}
+			switch (defer_child_sa(this))
+			{
+				case NEED_MORE:
+					/* defer until after IKE_SA has been established */
+					chunk_free(&this->other_nonce);
+					return NEED_MORE;
+				case NOT_SUPPORTED:
+				default:
+					/* just continue to establish the CHILD_SA */
+					break;
 			}
 			ike_auth = TRUE;
 		default:
