@@ -27,6 +27,7 @@
 #include "wolfssl_ed_public_key.h"
 
 #include <utils/debug.h>
+#include <asn1/asn1.h>
 
 #include <wolfssl/wolfcrypt/ed25519.h>
 
@@ -48,39 +49,32 @@ struct private_public_key_t {
 	ed25519_key key;
 
 	/**
-	 * Key type
-	 */
-	key_type_t type;
-
-	/**
-	 * Reference counter
+	 * Reference count
 	 */
 	refcount_t ref;
 };
 
-
 METHOD(public_key_t, get_type, key_type_t,
 	private_public_key_t *this)
 {
-	return this->type;
+	return KEY_ED25519;
 }
 
 METHOD(public_key_t, verify, bool,
 	private_public_key_t *this, signature_scheme_t scheme,
 	void *params, chunk_t data, chunk_t signature)
 {
-	int ret;
-	int res;
 	byte dummy[1];
+	int ret, res;
 
-	if (this->type == KEY_ED25519 && scheme != SIGN_ED25519)
+	if (scheme != SIGN_ED25519)
 	{
 		DBG1(DBG_LIB, "signature scheme %N not supported by %N key",
-			 signature_scheme_names, scheme, key_type_names, this->type);
+			 signature_scheme_names, scheme, key_type_names, KEY_ED25519);
 		return FALSE;
 	}
 
-	if (data.ptr == NULL && data.len == 0)
+	if (!data.ptr && !data.len)
 	{
 		data.ptr = dummy;
 	}
@@ -208,7 +202,7 @@ METHOD(public_key_t, destroy, void,
 /**
  * Generic private constructor
  */
-static private_public_key_t *create_empty(key_type_t type)
+static private_public_key_t *create_empty()
 {
 	private_public_key_t *this;
 
@@ -225,15 +219,14 @@ static private_public_key_t *create_empty(key_type_t type)
 			.get_ref = _get_ref,
 			.destroy = _destroy,
 		},
-		.type = type,
 		.ref = 1,
 	);
+
 	if (wc_ed25519_init(&this->key) != 0)
 	{
 		free(this);
 		return NULL;
 	}
-
 	return this;
 }
 
@@ -265,8 +258,8 @@ public_key_t *wolfssl_ed_public_key_load(key_type_t type, va_list args)
 		break;
 	}
 
-	this = create_empty(type);
-	if (this == NULL)
+	this = create_empty();
+	if (!this)
 	{
 		return NULL;
 	}

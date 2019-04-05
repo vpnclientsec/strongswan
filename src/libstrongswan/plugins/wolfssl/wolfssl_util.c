@@ -28,8 +28,8 @@
 #include <wolfssl/wolfcrypt/hash.h>
 #include <wolfssl/wolfcrypt/rsa.h>
 
-/**
- * Described in header.
+/*
+ * Described in header
  */
 bool wolfssl_hash_chunk(int hash_type, chunk_t data, chunk_t *hash)
 {
@@ -45,8 +45,8 @@ bool wolfssl_hash_chunk(int hash_type, chunk_t data, chunk_t *hash)
 	return TRUE;
 }
 
-/**
- * Described in header.
+/*
+ * Described in header
  */
 bool wolfssl_mp2chunk(mp_int *mp, chunk_t *chunk)
 {
@@ -63,8 +63,8 @@ bool wolfssl_mp2chunk(mp_int *mp, chunk_t *chunk)
 	return FALSE;
 }
 
-/**
- * Described in header.
+/*
+ * Described in header
  */
 bool wolfssl_mp_split(chunk_t chunk, mp_int *a, mp_int *b)
 {
@@ -82,12 +82,11 @@ bool wolfssl_mp_split(chunk_t chunk, mp_int *a, mp_int *b)
 	{
 		ret = mp_read_unsigned_bin(b, chunk.ptr + len, len);
 	}
-
 	return ret == 0;
 }
 
-/**
- * Described in header.
+/*
+ * Described in header
  */
 bool wolfssl_mp_cat(int len, mp_int *a, mp_int *b, chunk_t *chunk)
 {
@@ -109,12 +108,11 @@ bool wolfssl_mp_cat(int len, mp_int *a, mp_int *b, chunk_t *chunk)
 		memset(chunk->ptr + len, 0, len - sz);
 		ret = mp_to_unsigned_bin(b, chunk->ptr + 2 * len - sz);
 	}
-
 	return ret == 0;
 }
 
-/**
- * Described in header.
+/*
+ * Described in header
  */
 bool wolfssl_hash2type(hash_algorithm_t hash, enum wc_HashType *type)
 {
@@ -156,8 +154,8 @@ bool wolfssl_hash2type(hash_algorithm_t hash, enum wc_HashType *type)
 	return TRUE;
 }
 
-/**
- * Described in header.
+/*
+ * Described in header
  */
 bool wolfssl_hash2mgf1(hash_algorithm_t hash, int *mgf1)
 {

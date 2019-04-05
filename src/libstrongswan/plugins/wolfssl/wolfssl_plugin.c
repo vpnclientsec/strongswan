@@ -45,20 +45,18 @@
 #define FIPS_MODE 0
 #endif
 
-
 typedef struct private_wolfssl_plugin_t private_wolfssl_plugin_t;
 
 /**
- * private data of wolfssl_plugin
+ * Private data of wolfssl_plugin
  */
 struct private_wolfssl_plugin_t {
 
 	/**
-	 * public functions
+	 * Public interface
 	 */
 	wolfssl_plugin_t public;
 };
-
 
 METHOD(plugin_t, get_name, char*,
 	private_wolfssl_plugin_t *this)
@@ -424,7 +422,7 @@ METHOD(plugin_t, destroy, void,
 }
 
 /*
- * see header file
+ * Described in header
  */
 plugin_t *wolfssl_plugin_create()
 {
@@ -436,7 +434,7 @@ plugin_t *wolfssl_plugin_create()
 #ifdef HAVE_FIPS
 	if (fips_mode)
 	{
-		int ret = wolfCrypt_GetStatus_fips(); 
+		int ret = wolfCrypt_GetStatus_fips();
 		if (ret != 0)
 		{
 			DBG1(DBG_LIB, "wolfssl FIPS mode(%d) unavailable (%d)", fips_mode,
