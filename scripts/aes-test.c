@@ -24,7 +24,7 @@
 
 /** plugins to load */
 #undef PLUGINS
-#define PLUGINS "openssl wolfssl"
+#define PLUGINS "openssl"
 
 /**
  * Context

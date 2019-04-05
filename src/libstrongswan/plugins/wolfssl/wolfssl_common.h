@@ -25,7 +25,7 @@
 
 #include <library.h>
 
-/* Undefine these as they are enum entries in wolfSSL - same values. */
+/* Undefine these as they are enum entries in wolfSSL - same values */
 #ifdef AES_BLOCK_SIZE
 #undef AES_BLOCK_SIZE
 #endif
@@ -49,4 +49,3 @@
 #undef PARSE_ERROR
 
 #endif /* WOLFSSL_COMMON_H_ */
-

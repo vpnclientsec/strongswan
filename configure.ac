@@ -62,7 +62,7 @@ ARG_WITH_SUBST([linux-headers],      [\${top_srcdir}/src/include], [set director
 ARG_WITH_SUBST([routing-table],      [220], [set routing table to use for IPsec routes])
 ARG_WITH_SUBST([routing-table-prio], [220], [set priority for IPsec routing table])
 ARG_WITH_SUBST([ipsec-script],       [ipsec], [change the name of the ipsec script])
-ARG_WITH_SUBST([fips-mode],          [0], [set openssl FIPS mode: disabled(0), enabled(1), Suite B enabled(2)])
+ARG_WITH_SUBST([fips-mode],          [0], [set openssl/wolfssl FIPS mode: disabled(0), enabled(1), Suite B enabled(2)])
 ARG_WITH_SUBST([libfuzzer],          [], [path to libFuzzer.a])
 ARG_WITH_SET([capabilities],         [no], [set capability dropping library. Currently supported values are "libcap" and "native"])
 ARG_WITH_SET([mpz_powm_sec],         [yes], [use the more side-channel resistant mpz_powm_sec in libgmp, if available])
@@ -145,7 +145,7 @@ ARG_ENABL_SET([newhope],        [enable New Hope crypto plugin.])
 ARG_DISBL_SET([nonce],          [disable nonce generation plugin.])
 ARG_ENABL_SET([ntru],           [enables the NTRU crypto plugin.])
 ARG_ENABL_SET([openssl],        [enables the OpenSSL crypto plugin.])
-ARG_ENABL_SET([wolfssl],        [enables the OpenSSL crypto plugin using wolfSSL.])
+ARG_ENABL_SET([wolfssl],        [enables the wolfSSL crypto plugin.])
 ARG_ENABL_SET([padlock],        [enables VIA Padlock crypto plugin.])
 ARG_DISBL_SET([random],         [disable RNG implementation on top of /dev/(u)random.])
 ARG_DISBL_SET([rc2],            [disable RC2 software implementation plugin.])
@@ -1136,6 +1136,7 @@ if test x$openssl = xtrue; then
 	AC_SUBST(OPENSSL_LIB, [-l$openssl_lib])
 	AC_CHECK_HEADER([openssl/evp.h],,[AC_MSG_ERROR([OpenSSL header openssl/evp.h not found!])])
 fi
+
 if test x$wolfssl = xtrue; then
 	wolfssl_lib=wolfssl
 	AC_CHECK_LIB([$wolfssl_lib],[wolfSSL_Init],[LIBS="$LIBS"],
