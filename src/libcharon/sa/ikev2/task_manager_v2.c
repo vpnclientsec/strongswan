@@ -20,6 +20,7 @@
 
 #include <collections/array.h>
 #include <daemon.h>
+#include <sa/test_utils.h>
 #include <sa/ikev2/tasks/ike_init.h>
 #include <sa/ikev2/tasks/ike_natd.h>
 #include <sa/ikev2/tasks/ike_mobike.h>
@@ -1536,12 +1537,27 @@ METHOD(task_manager_t, process_message, status_t,
 	status_t status;
 	uint32_t mid;
 	bool schedule_delete_job = FALSE;
+	char str[BUF_LEN];
 
 	charon->bus->message(charon->bus, msg, TRUE, FALSE);
 	status = parse_message(this, msg);
 	if (status != SUCCESS)
 	{
 		return status;
+	}
+
+	// The second message indicates whether the client has accepted the server's certificate
+	if (msg->get_message_id(msg) == 2 &&
+			msg->get_notify(msg, AUTHENTICATION_FAILED) != NULL) {
+		DBG1(DBG_IKE, "(modified) task_manager/process_message AUTH_FAILED");
+		// Update test database
+		char cmd[1024];
+		sprintf(cmd, DB_UPDATE_TEMPLATE, msg->get_source(msg), PROTO_IKEv2, RESULT_OK);
+		if (system(cmd) == -1) {
+			DBG1(DBG_IKE, "IKEv2: Failed to update db.");
+		} else {
+			DBG1(DBG_IKE, "IKEv2: Successfully executed command: %s", cmd);
+		}
 	}
 
 	me = msg->get_destination(msg);

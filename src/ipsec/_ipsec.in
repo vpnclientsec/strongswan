@@ -48,7 +48,7 @@ command_dir="$IPSEC_DIR"
 
 case "$1" in
 '')
-	echo "$IPSEC_SCRIPT command [arguments]"
+	echo "$IPSEC_SCRIPT (modified) command [arguments]"
 	echo
 	echo "Use --help for a list of commands, or refer to the $IPSEC_SCRIPT(8) man page."
 	echo "See <http://www.strongswan.org> for more general information."

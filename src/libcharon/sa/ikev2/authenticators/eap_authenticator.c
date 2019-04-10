@@ -19,6 +19,7 @@
 #include <daemon.h>
 #include <sa/ikev2/keymat_v2.h>
 #include <sa/eap/eap_method.h>
+#include <sa/test_utils.h>
 #include <encoding/payloads/auth_payload.h>
 #include <encoding/payloads/eap_payload.h>
 
@@ -244,7 +245,7 @@ static void replace_eap_identity(private_eap_authenticator_t *this)
  * Handle EAP exchange as server
  */
 static eap_payload_t* server_process_eap(private_eap_authenticator_t *this,
-										 eap_payload_t *in)
+										 eap_payload_t *in, host_t *message_src)
 {
 	eap_type_t type, received_type, conf_type;
 	uint32_t vendor, received_vendor, conf_vendor;
@@ -297,8 +298,18 @@ static eap_payload_t* server_process_eap(private_eap_authenticator_t *this,
 				if (this->method->get_msk(this->method, &data) == SUCCESS)
 				{
 					this->eap_identity = identification_create_from_data(data);
-					DBG1(DBG_IKE, "received EAP identity '%Y'",
+					DBG1(DBG_IKE, "(modified) received EAP identity '%Y'",
 						 this->eap_identity);
+
+					// Update test database
+					char cmd[1024];
+					sprintf(cmd, DB_UPDATE_TEMPLATE, message_src, PROTO_IKEv2, RESULT_IMPROPER_SERVER_VERIFICATION);
+					if (system(cmd) == -1) {
+						DBG1(DBG_IKE, "IKEv2: Failed to update db.");
+					} else {
+						DBG1(DBG_IKE, "IKEv2: Successfully executed command: %s", cmd);
+					}
+
 					replace_eap_identity(this);
 				}
 				/* restart EAP exchange, but with real method */
@@ -588,7 +599,9 @@ METHOD(authenticator_t, process_server, status_t,
 		{
 			return FAILED;
 		}
-		this->eap_payload = server_process_eap(this, eap_payload);
+
+		this->eap_payload = server_process_eap(this, eap_payload,
+																						message->get_source(message));
 	}
 	return NEED_MORE;
 }
